@@ -3,39 +3,1060 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot Control Panel</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Robot Control Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .connected {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .disconnected {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .connecting {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .ws-config {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ws-input {
+            padding: 8px 12px;
+            background: rgba(55, 65, 81, 0.5);
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .ws-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: calc(100vh - 200px);
+        }
+
+        .panel {
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #d1d5db;
+            margin-bottom: 15px;
+        }
+
+        .movement-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .movement-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s ease;
+            background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .movement-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .movement-btn:disabled {
+            background: #4b5563;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .stop-btn {
+            background: linear-gradient(45deg, #ef4444, #dc2626) !important;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: linear-gradient(45deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+
+        .speed-control {
+            margin-top: auto;
+        }
+
+        .speed-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #4b5563;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+        }
+
+        .camera-container {
+            flex: 1;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .camera-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .camera-offline {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.8);
+            color: #9ca3af;
+            font-size: 18px;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-top {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .ws-config {
+                align-self: stretch;
+            }
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <h1>Robot Control Panel</h1>
-
-        <div class="status-section">
-            <h2>Status</h2>
-            <p>Connection: <span id="connection-status" class="status-indicator disconnected">Disconnected</span></p>
-            <p>Battery: <span id="battery-level">--%</span></p>
-        </div>
-
-        <div class="controls-section">
-            <h2>Movement Controls</h2>
-            <div class="movement-grid">
-                <button id="forward-btn" class="control-btn">Forward</button>
-                <div class="row">
-                    <button id="left-btn" class="control-btn">Left</button>
-                    <button id="stop-btn" class="control-btn stop-btn">STOP</button>
-                    <button id="right-btn" class="control-btn">Right</button>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <div>
+                    <h1 class="title">Robot Control Dashboard</h1>
+                    <div class="status-indicators">
+                        <div id="robotStatus" class="status-badge disconnected">
+                            <div class="status-dot"></div>
+                            <span>Robot Disconnected</span>
+                        </div>
+                        <div id="wsStatus" class="status-badge disconnected">
+                            <div class="status-dot"></div>
+                            <span>WebSocket: Disconnected</span>
+                        </div>
+                        <div class="status-badge" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">
+                            Status: <span id="currentStatus" style="font-weight: bold;">idle</span>
+                        </div>
+                    </div>
                 </div>
-                <button id="reverse-btn" class="control-btn">Reverse</button>
+                
+                <div class="ws-config">
+                    <input type="text" id="wsUrl" class="ws-input" value="ws://localhost:8080" placeholder="WebSocket URL">
+                    <button id="wsConnectBtn" class="btn btn-primary">Connect WS</button>
+                </div>
             </div>
         </div>
 
-        <div class="action-section">
-            <h2>Actions</h2>
-            <button id="action1-btn" class="control-btn action-btn">Perform Action 1</button>
-            <button id="action2-btn" class="control-btn action-btn">Perform Action 2</button>
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Control Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="icon">⚙️</span>
+                    <span>Robot Controls</span>
+                </div>
+                
+                <div class="control-section">
+                    <button id="connectBtn" class="btn btn-success" style="width: 100%; padding: 12px; font-size: 16px; margin-bottom: 20px;">
+                        🔌 Connect Robot
+                    </button>
+                </div>
+
+                <div class="control-section">
+                    <div class="section-title">Movement</div>
+                    <div class="movement-grid">
+                        <div></div>
+                        <button class="movement-btn" data-direction="forward">↑</button>
+                        <div></div>
+                        <button class="movement-btn" data-direction="left">←</button>
+                        <button class="movement-btn stop-btn" data-action="stop">⬛</button>
+                        <button class="movement-btn" data-direction="right">→</button>
+                        <div></div>
+                        <button class="movement-btn" data-direction="backward">↓</button>
+                        <div></div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <div class="section-title">Actions</div>
+                    <div class="action-grid">
+                        <button class="action-btn" data-action="rotating_left">🔄 Rotate L</button>
+                        <button class="action-btn" data-action="rotating_right">🔃 Rotate R</button>
+                    </div>
+                </div>
+
+                <div class="speed-control">
+                    <div class="section-title">Speed: <span id="speedValue">50</span>%</div>
+                    <input type="range" id="speedSlider" class="speed-slider" min="0" max="100" value="50">
+                </div>
+            </div>
+
+            <!-- Camera Feed -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="icon">📹</span>
+                    <span>Live Camera Feed</span>
+                </div>
+                <div class="camera-container">
+                    <canvas id="cameraCanvas" class="camera-canvas"></canvas>
+                    <div id="cameraOffline" class="camera-offline">Camera Offline</div>
+                </div>
+            </div>
+
+            <!-- Sensor Data -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="icon">🌡️</span>
+                    <span>Environmental Sensors</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="sensorChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #ef4444;"></div>
+                        <span>Temperature</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #3b82f6;"></div>
+                        <span>Humidity</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #10b981;"></div>
+                        <span>Pressure</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Data -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="icon">📊</span>
+                    <span>System Performance</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #f59e0b;"></div>
+                        <span>CPU</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #8b5cf6;"></div>
+                        <span>Memory</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: #06b6d4;"></div>
+                        <span>Network</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        // Application state
+        let state = {
+            isConnected: false,
+            robotStatus: 'idle',
+            batteryLevel: 85,
+            speed: 50,
+            wsConnectionStatus: 'disconnected',
+            ws: null,
+            reconnectTimeout: null,
+            sensorChart: null,
+            performanceChart: null
+        };
+
+        // DOM elements
+        const elements = {
+            wsUrl: document.getElementById('wsUrl'),
+            wsConnectBtn: document.getElementById('wsConnectBtn'),
+            connectBtn: document.getElementById('connectBtn'),
+            robotStatus: document.getElementById('robotStatus'),
+            wsStatus: document.getElementById('wsStatus'),
+            currentStatus: document.getElementById('currentStatus'),
+            speedSlider: document.getElementById('speedSlider'),
+            speedValue: document.getElementById('speedValue'),
+            cameraCanvas: document.getElementById('cameraCanvas'),
+            cameraOffline: document.getElementById('cameraOffline'),
+            movementBtns: document.querySelectorAll('[data-direction]'),
+            actionBtns: document.querySelectorAll('[data-action]')
+        };
+
+        // WebSocket connection management
+        function connectWebSocket() {
+            try {
+                updateWSStatus('connecting');
+                state.ws = new WebSocket(elements.wsUrl.value);
+
+                state.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    updateWSStatus('connected');
+                    state.isConnected = true;
+                    updateRobotStatus(true);
+                    
+                    // Send initial connection message
+                    sendMessage({
+                        type: 'connect',
+                        timestamp: new Date().toISOString()
+                    });
+                };
+
+                state.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleWebSocketMessage(data);
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+
+                state.ws.onclose = (event) => {
+                    console.log('WebSocket disconnected:', event.code, event.reason);
+                    updateWSStatus('disconnected');
+                    state.isConnected = false;
+                    updateRobotStatus(false);
+                    
+                    // Attempt to reconnect after 3 seconds if it wasn't a manual disconnect
+                    if (event.code !== 1000) {
+                        state.reconnectTimeout = setTimeout(() => {
+                            connectWebSocket();
+                        }, 3000);
+                    }
+                };
+
+                state.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    updateWSStatus('error');
+                };
+
+            } catch (error) {
+                console.error('Error creating WebSocket connection:', error);
+                updateWSStatus('error');
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (state.reconnectTimeout) {
+                clearTimeout(state.reconnectTimeout);
+            }
+            
+            if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                state.ws.close(1000, 'Manual disconnect');
+            }
+            
+            updateWSStatus('disconnected');
+            state.isConnected = false;
+            updateRobotStatus(false);
+        }
+
+        function sendMessage(message) {
+            if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+                state.ws.send(JSON.stringify(message));
+                console.log('Sent:', message);
+            } else {
+                console.error('WebSocket not connected');
+            }
+        }
+
+        function sendCommand(command, data = {}) {
+            sendMessage({
+                type: 'command',
+                command: command,
+                data: data,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Handle incoming WebSocket messages
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'sensor_data':
+                    updateSensorChart(data);
+                    break;
+                    
+                case 'performance_data':
+                    updatePerformanceChart(data);
+                    break;
+                    
+                case 'robot_status':
+                    state.robotStatus = data.status;
+                    if (data.battery !== undefined) state.batteryLevel = data.battery;
+                    updateStatusDisplay();
+                    break;
+                    
+                case 'camera_frame':
+                    // Handle camera frame data
+                    break;
+                    
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        // UI update functions
+        function updateWSStatus(status) {
+            state.wsConnectionStatus = status;
+            const statusEl = elements.wsStatus;
+            const dot = statusEl.querySelector('.status-dot');
+            
+            statusEl.className = 'status-badge';
+            
+            switch (status) {
+                case 'connected':
+                    statusEl.classList.add('connected');
+                    statusEl.querySelector('span').textContent = 'WebSocket: Connected';
+                    break;
+                case 'connecting':
+                    statusEl.classList.add('connecting');
+                    statusEl.querySelector('span').textContent = 'WebSocket: Connecting...';
+                    break;
+                case 'error':
+                    statusEl.classList.add('disconnected');
+                    statusEl.querySelector('span').textContent = 'WebSocket: Error';
+                    break;
+                default:
+                    statusEl.classList.add('disconnected');
+                    statusEl.querySelector('span').textContent = 'WebSocket: Disconnected';
+            }
+        }
+
+        function updateRobotStatus(connected) {
+            const statusEl = elements.robotStatus;
+            statusEl.className = 'status-badge';
+            
+            if (connected) {
+                statusEl.classList.add('connected');
+                statusEl.querySelector('span').textContent = 'Robot Connected';
+                elements.connectBtn.textContent = '🔌 Disconnect Robot';
+                elements.connectBtn.className = 'btn btn-danger';
+            } else {
+                statusEl.classList.add('disconnected');
+                statusEl.querySelector('span').textContent = 'Robot Disconnected';
+                elements.connectBtn.textContent = '🔌 Connect Robot';
+                elements.connectBtn.className = 'btn btn-success';
+            }
+            
+            // Enable/disable controls
+            elements.movementBtns.forEach(btn => btn.disabled = !connected);
+            elements.actionBtns.forEach(btn => btn.disabled = !connected);
+            elements.speedSlider.disabled = !connected;
+            
+            // Update camera display
+            elements.cameraOffline.style.display = connected ? 'none' : 'flex';
+        }
+
+        function updateStatusDisplay() {
+            elements.currentStatus.textContent = state.robotStatus;
+        }
+
+        // Chart initialization and updates
+        function initializeCharts() {
+            // Sensor Chart
+            const sensorCtx = document.getElementById('sensorChart').getContext('2d');
+            state.sensorChart = new Chart(sensorCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: [],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Pressure (hPa)',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                        y: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }
+                    }
+                }
+            });
+
+            // Performance Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            state.performanceChart = new Chart(performanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'CPU (%)',
+                            data: [],
+                            backgroundColor: '#f59e0b'
+                        },
+                        {
+                            label: 'Memory (%)',
+                            data: [],
+                            backgroundColor: '#8b5cf6'
+                        },
+                        {
+                            label: 'Network (%)',
+                            data: [],
+                            backgroundColor: '#06b6d4'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                        y: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }
+                    }
+                }
+            });
+        }
+
+        function updateSensorChart(data) {
+            const chart = state.sensorChart;
+            const time = new Date(data.timestamp).toLocaleTimeString();
+            
+            chart.data.labels.push(time);
+            chart.data.datasets[0].data.push(data.temperature);
+            chart.data.datasets[1].data.push(data.humidity);
+            chart.data.datasets[2].data.push(data.pressure);
+            
+            // Keep only last 20 points
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            
+            chart.update('none');
+        }
+
+        function updatePerformanceChart(data) {
+            const chart = state.performanceChart;
+            const time = new Date(data.timestamp).toLocaleTimeString();
+            
+            chart.data.labels.push(time);
+            chart.data.datasets[0].data.push(data.cpu);
+            chart.data.datasets[1].data.push(data.memory);
+            chart.data.datasets[2].data.push(data.network);
+            
+            // Keep only last 8 points
+            if (chart.data.labels.length > 8) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            
+            chart.update('none');
+        }
+
+        // Camera simulation
+        function initializeCamera() {
+            const canvas = elements.cameraCanvas;
+            const ctx = canvas.getContext('2d');
+            
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+            }
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            function drawCamera() {
+                if (!state.isConnected) return;
+                
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw grid overlay
+                ctx.strokeStyle = '#16213e';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < canvas.width; i += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.stroke();
+                }
+                for (let i = 0; i < canvas.height; i += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(canvas.width, i);
+                    ctx.stroke();
+                }
+
+                // Simulate moving objects
+                const time = Date.now() * 0.001;
+                ctx.fillStyle = '#00ff88';
+                ctx.beginPath();
+                ctx.arc(
+                    100 + Math.sin(time) * 80,
+                    80 + Math.cos(time * 0.7) * 40,
+                    8,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+
+                ctx.fillStyle = '#ff4757';
+                ctx.beginPath();
+                ctx.arc(
+                    200 + Math.cos(time * 1.2) * 60,
+                    120 + Math.sin(time * 0.9) * 30,
+                    6,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+
+                // Status overlay
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(10, 10, 150, 60);
+                ctx.fillStyle = '#00ff88';
+                ctx.font = '12px monospace';
+                ctx.fillText(`Status: ${state.robotStatus}`, 15, 25);
+                ctx.fillText(`Battery: ${state.batteryLevel.toFixed(1)}%`, 15, 40);
+                ctx.fillText(`Speed: ${state.speed}%`, 15, 55);
+
+                requestAnimationFrame(drawCamera);
+            }
+            
+            drawCamera();
+        }
+
+        // Mock data generation (fallback when WebSocket is not connected)
+        function startMockDataGeneration() {
+            setInterval(() => {
+                if (state.wsConnectionStatus !== 'connected') {
+                    // Generate mock sensor data
+                    const mockSensorData = {
+                        type: 'sensor_data',
+                        timestamp: new Date().toISOString(),
+                        temperature: 20 + Math.random() * 15,
+                        humidity: 40 + Math.random() * 30,
+                        pressure: 1000 + Math.random() * 50
+                    };
+                    updateSensorChart(mockSensorData);
+
+                    // Generate mock performance data
+                    const mockPerformanceData = {
+                        type: 'performance_data',
+                        timestamp: new Date().toISOString(),
+                        cpu: Math.random() * 100,
+                        memory: Math.random() * 100,
+                        network: Math.random() * 100
+                    };
+                    updatePerformanceChart(mockPerformanceData);
+
+                    // Simulate battery drain
+                    state.batteryLevel = Math.max(0, state.batteryLevel - 0.1);
+                }
+            }, 1000);
+        }
+
+        // Event listeners
+        elements.wsConnectBtn.addEventListener('click', () => {
+            if (state.wsConnectionStatus === 'connected') {
+                disconnectWebSocket();
+            } else {
+                connectWebSocket();
+            }
+        });
+
+        elements.connectBtn.addEventListener('click', () => {
+            if (state.isConnected) {
+                disconnectWebSocket();
+            } else {
+                connectWebSocket();
+            }
+        });
+
+        elements.speedSlider.addEventListener('input', (e) => {
+            state.speed = parseInt(e.target.value);
+            elements.speedValue.textContent = state.speed;
+            
+            if (state.isConnected) {
+                sendCommand('set_speed', { speed: state.speed });
+            }
+        });
+
+        // Movement and action controls
+        elements.movementBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!state.isConnected) return;
+                const direction = btn.getAttribute('data-direction');
+                sendCommand('move', { direction, speed: state.speed });
+                state.robotStatus = `moving_${direction}`;
+                updateStatusDisplay();
+                
+                setTimeout(() => {
+                    state.robotStatus = 'connected';
+                    updateStatusDisplay();
+                }, 1000);
+            });
+        });
+
+        elements.actionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!state.isConnected) return;
+                const action = btn.getAttribute('data-action');
+                
+                if (action === 'stop') {
+                    sendCommand('action', { action: 'stop' });
+                    state.robotStatus = 'stopped';
+                } else {
+                    sendCommand('action', { action });
+                    state.robotStatus = action;
+                }
+                
+                updateStatusDisplay();
+                
+                setTimeout(() => {
+                    state.robotStatus = 'connected';
+                    updateStatusDisplay();
+                }, action === 'stop' ? 500 : 2000);
+            });
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!state.isConnected) return;
+            
+            switch (e.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    e.preventDefault();
+                    sendCommand('move', { direction: 'forward', speed: state.speed });
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    e.preventDefault();
+                    sendCommand('move', { direction: 'backward', speed: state.speed });
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    e.preventDefault();
+                    sendCommand('move', { direction: 'left', speed: state.speed });
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    e.preventDefault();
+                    sendCommand('move', { direction: 'right', speed: state.speed });
+                    break;
+                case 'Space':
+                    e.preventDefault();
+                    sendCommand('action', { action: 'stop' });
+                    break;
+                case 'KeyQ':
+                    e.preventDefault();
+                    sendCommand('action', { action: 'rotating_left' });
+                    break;
+                case 'KeyE':
+                    e.preventDefault();
+                    sendCommand('action', { action: 'rotating_right' });
+                    break;
+            }
+        });
+
+        // Update WebSocket connect button based on connection status
+        function updateWSConnectButton() {
+            const btn = elements.wsConnectBtn;
+            const input = elements.wsUrl;
+            
+            switch (state.wsConnectionStatus) {
+                case 'connected':
+                    btn.textContent = 'Disconnect WS';
+                    btn.className = 'btn btn-danger';
+                    input.disabled = true;
+                    break;
+                case 'connecting':
+                    btn.textContent = 'Connecting...';
+                    btn.className = 'btn btn-primary';
+                    btn.disabled = true;
+                    input.disabled = true;
+                    break;
+                default:
+                    btn.textContent = 'Connect WS';
+                    btn.className = 'btn btn-primary';
+                    btn.disabled = false;
+                    input.disabled = false;
+            }
+        }
+
+        // Update button states when connection status changes
+        const originalUpdateWSStatus = updateWSStatus;
+        updateWSStatus = function(status) {
+            originalUpdateWSStatus(status);
+            updateWSConnectButton();
+        };
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Initializing Robot Control Dashboard...');
+            
+            // Initialize charts
+            initializeCharts();
+            
+            // Initialize camera simulation
+            initializeCamera();
+            
+            // Start mock data generation
+            startMockDataGeneration();
+            
+            // Update initial UI state
+            updateWSStatus('disconnected');
+            updateRobotStatus(false);
+            updateStatusDisplay();
+            
+            console.log('Dashboard initialized successfully!');
+            console.log('Keyboard Controls:');
+            console.log('  WASD / Arrow Keys: Movement');
+            console.log('  Space: Stop');
+            console.log('  Q: Rotate Left');
+            console.log('  E: Rotate Right');
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (state.ws) {
+                state.ws.close();
+            }
+        });
+
+    </script>
 </body>
 </html>
