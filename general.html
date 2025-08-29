@@ -1,11 +1,41 @@
 <!DOCTYPE html>
-<html lang= "en">
-<div id="div1">
-</div>
-<div id="div2">
-</div>
-<div id="div3">
-</div>
-<div id="div4">
-</div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Robot Control Panel</h1>
+
+        <div class="status-section">
+            <h2>Status</h2>
+            <p>Connection: <span id="connection-status" class="status-indicator disconnected">Disconnected</span></p>
+            <p>Battery: <span id="battery-level">--%</span></p>
+        </div>
+
+        <div class="controls-section">
+            <h2>Movement Controls</h2>
+            <div class="movement-grid">
+                <button id="forward-btn" class="control-btn">Forward</button>
+                <div class="row">
+                    <button id="left-btn" class="control-btn">Left</button>
+                    <button id="stop-btn" class="control-btn stop-btn">STOP</button>
+                    <button id="right-btn" class="control-btn">Right</button>
+                </div>
+                <button id="reverse-btn" class="control-btn">Reverse</button>
+            </div>
+        </div>
+
+        <div class="action-section">
+            <h2>Actions</h2>
+            <button id="action1-btn" class="control-btn action-btn">Perform Action 1</button>
+            <button id="action2-btn" class="control-btn action-btn">Perform Action 2</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
 </html>
